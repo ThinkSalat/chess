@@ -1,19 +1,20 @@
 require_relative "piece"
 require_relative 'display'
 class Board
-  attr_accessor :grid, :null
+  attr_accessor :grid, :colors
 
   def initialize
     @grid = Array.new(8) { Array.new(8, nil) }
     populate
-    @display = Display.new(board)
+    @display = Display.new(self)
+    @colors = [:yellow,:blue]
   end
 
 
   def move_piece(start_pos, end_pos)
     piece = self[start_pos]
     raise NullPieceError.new("No piece at #{start_pos}") if piece.is_a? NullPiece
-    if piece.valid_moves.include?(end_pos)
+    if piece.moves(start_pos).include?(end_pos)
       self[end_pos] = piece
       self[start_pos] = @null
       piece.pos = end_pos
@@ -29,7 +30,7 @@ class Board
       when 0, 7
         row.each_with_index do |cell, col_idx|
           pos = [row_idx,col_idx]
-          color = row == 0 ? :black : :white
+          color = row_idx == 0 ? :yellow : :blue
           case col_idx
           when 0,7 then self[pos] = Rook.new(color,self,pos)
           when 1,6 then self[pos] = Knight.new(color,self,pos)
@@ -41,7 +42,7 @@ class Board
       when 1, 6
         row.each_with_index do |cell, col_idx|
           pos = [row_idx,col_idx]
-          color = row == 1 ? :black : :white
+          color = row_idx == 1 ? :yellow : :blue
           self[pos] = Pawn.new(color,self,pos)
         end
       else
@@ -49,6 +50,28 @@ class Board
       end
     end
   end
+
+  def in_check?(color)
+    king = (0..7).to_a.repeated_permutation(2).select { |x, y| self[[x,y]].is_a?(King) && self[[x,y]].color == color }.first
+    p king
+    
+    opponent_pieces = []
+    (0..7).to_a.repeated_permutation(2).each do |x,y|
+      piece = self[[x,y]]
+      opponent_pieces << piece if colors.reject {|c| c==color}.include?(piece.color)
+    end
+
+
+    opponent_pieces.each do |piece|
+      piece.moves(piece.pos).each do |move|
+        p move
+        return true if move == king
+      end
+    end
+    false
+  end
+
+
 
   def [](pos)
     row, col = pos
@@ -61,10 +84,25 @@ class Board
   end
 
   def display
-    display.render
+    @display.render
   end
 
   def valid_pos?(pos)
-    pos.none { |coord| !coord.between?(0, 7) }
+    pos.none? { |coord| !coord.between?(0, 7) }
   end
+  private
+  attr_reader :null
+end
+
+if __FILE__ == $0
+  b= Board.new
+  pawn = b[[6,7]]
+  b.display
+  # b.move_piece([1,0],[3,0])
+  bishop = Bishop.new(:blue,b,[1,3])
+  b[[1,3]] = bishop
+  b.display
+  puts b.in_check?(:yellow)
+  # puts pawn.moves(pawn.pos).map { |pos| b[pos] }
+  p bishop.moves(bishop.pos)
 end
