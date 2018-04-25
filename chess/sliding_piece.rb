@@ -27,6 +27,7 @@ module SlidingPiece
         else
           break
         end
+        break if !@board[new_pos].empty?
         new_pos = [new_pos[0] + dx, new_pos[1] + dy]
 
       end

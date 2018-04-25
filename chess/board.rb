@@ -7,7 +7,7 @@ class Board
     @grid = Array.new(8) { Array.new(8, nil) }
     populate
     @display = Display.new(self)
-    @colors = [:yellow,:blue]
+    @colors = [:light_green,:light_magenta]
   end
 
 
@@ -30,7 +30,7 @@ class Board
       when 0, 7
         row.each_with_index do |cell, col_idx|
           pos = [row_idx,col_idx]
-          color = row_idx == 0 ? :yellow : :blue
+          color = row_idx == 0 ? :light_green : :light_magenta
           case col_idx
           when 0,7 then self[pos] = Rook.new(color,self,pos)
           when 1,6 then self[pos] = Knight.new(color,self,pos)
@@ -42,7 +42,7 @@ class Board
       when 1, 6
         row.each_with_index do |cell, col_idx|
           pos = [row_idx,col_idx]
-          color = row_idx == 1 ? :yellow : :blue
+          color = row_idx == 1 ? :light_green : :light_magenta
           self[pos] = Pawn.new(color,self,pos)
         end
       else
@@ -53,25 +53,24 @@ class Board
 
   def in_check?(color)
     king = (0..7).to_a.repeated_permutation(2).select { |x, y| self[[x,y]].is_a?(King) && self[[x,y]].color == color }.first
-    p king
-    
+
     opponent_pieces = []
     (0..7).to_a.repeated_permutation(2).each do |x,y|
       piece = self[[x,y]]
       opponent_pieces << piece if colors.reject {|c| c==color}.include?(piece.color)
     end
 
-
     opponent_pieces.each do |piece|
       piece.moves(piece.pos).each do |move|
-        p move
         return true if move == king
       end
     end
     false
   end
 
-
+  def deep_dup(arr)
+    arr.map {|el| el.is_a?(Array) ? self.deep_dup(el) : el}
+  end
 
   def [](pos)
     row, col = pos
@@ -88,21 +87,27 @@ class Board
   end
 
   def valid_pos?(pos)
-    pos.none? { |coord| !coord.between?(0, 7) }
+    pos.all? { |coord| coord.between?(0, 7) }
   end
   private
   attr_reader :null
+
 end
 
 if __FILE__ == $0
   b= Board.new
   pawn = b[[6,7]]
-  b.display
+  # b.display
   # b.move_piece([1,0],[3,0])
-  bishop = Bishop.new(:blue,b,[1,3])
+  bishop = Bishop.new(:light_magenta,b,[1,3])
   b[[1,3]] = bishop
-  b.display
-  puts b.in_check?(:yellow)
+  # b.display
+  puts b.in_check?(:light_green)
   # puts pawn.moves(pawn.pos).map { |pos| b[pos] }
-  p bishop.moves(bishop.pos)
+  # p bishop.moves(bishop.pos)
+  c = Board.new
+  c.grid = b.deep_dup(b.grid)
+  # b[[1,3]]= pawn
+  b.display
+  c.display
 end

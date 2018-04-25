@@ -2,7 +2,7 @@ require 'singleton'
 require_relative 'board'
 require_relative 'sliding_piece'
 require_relative 'stepping_piece'
-
+require 'byebug'
 class Piece
   attr_accessor :board, :pos, :color
   def initialize(color, board, pos)
@@ -10,10 +10,20 @@ class Piece
   end
 
 
-  def valid?(pos)
-    return false unless @board.valid_pos?(pos)
-    piece = @board[pos]
+  def valid?(end_pos)
+    return false unless @board.valid_pos?(end_pos)
+    piece = @board[end_pos]
     return true if piece.empty? || piece.color != @color
+    false
+  end
+
+  def check?(end_pos)
+    board_dup = Board.new
+    board_dup.grid = @board.deep_dup(@board.grid)
+    board_dup[end_pos] = self
+    board_dup[@pos] = NullPiece.instance
+
+    return true if board_dup.in_check?(@color)
     false
   end
 
@@ -62,7 +72,7 @@ end
 class Rook < Piece
   include SlidingPiece
   def symbol
-    "R"
+    "♜"
   end
 
   def move_dirs
@@ -73,7 +83,7 @@ end
 class Knight < Piece
   include SteppingPiece
   def symbol
-    "K"
+    "♞"
   end
 
   def move_dirs
@@ -89,14 +99,14 @@ class Bishop < Piece
   end
 
   def symbol
-    "B"
+    "♝"
   end
 end
 
 class King < Piece
   include SteppingPiece
   def symbol
-    "W"
+    "♚"
   end
   def move_dirs
     king_dirs
@@ -111,13 +121,13 @@ class Queen < Piece
   end
 
   def symbol
-    "Q"
+    "♛"
   end
 end
 
 class Pawn  < Piece
   def symbol
-    "P"
+    "♟"
   end
 
   def valid_vertical?(pos)
@@ -144,25 +154,21 @@ class Pawn  < Piece
 
     color = self.color
     valid_moves = []
-    if color == :blue #we're on the bottom
+    if color == :light_magenta #we're on the bottom
       bottom_deltas = deltas.map { |(x,y)| [x*-1, y*-1] }
       bottom_deltas.each_with_index do |move, index|
         next unless valid_vertical?(move) && move[1] == 0
         next unless valid_diagonal?(move) && move[1] != 0
-
         next if index == 1 && pos[0] != 6
         valid_moves << move
       end
-
-    else #color is yellow
+    else #color is light_green
       deltas.each_with_index do |move, index|
         next unless valid_vertical?(move) && move[1] == 0
         next unless valid_diagonal?(move) && move[1] != 0
-
         next if index == 1 && pos[0] != 6
         valid_moves << move
       end
-
     end
     valid_moves
   end
@@ -174,10 +180,12 @@ end
 
 if __FILE__ == $PROGRAM_NAME
   b = Board.new
-  ps = Pawn.new(:yellow,b,[1,0])
+  ps = Pawn.new(:light_green,b,[1,0])
   k = Knight.new(:black,b,[0,2])
   b[[1,0]] = ps
-  p ps.moves(ps.pos)
+  piece = b[[1,4]]
+  p b.in_check?(:light_green)
+  p piece.check?([2,4])
 end
 
 
@@ -202,7 +210,7 @@ end
 #     new_pos = [pos[0]-1,pos[1]-1]
 #     other_piece = @board[new_pos]
 #     move << new_pos if @board[new_pos].color != color && other_piece.class != NullPiece
-#   else #color is yellow
+#   else #color is light_green
 #     move << [pos[0]+1,pos[1]]
 #     move << [pos[0]+2,pos[1]]if pos[0] == 1
 #     new_pos = [pos[0]+1,pos[1]+1]

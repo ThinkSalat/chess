@@ -22,7 +22,7 @@ class Display
 
         player_color = cell.color
         background_color = :green if pos == @cursor.cursor_pos && @cursor.selected
-        background_color = :red if pos == @cursor.cursor_pos && @cursor.selected == false
+        background_color = :light_cyan if pos == @cursor.cursor_pos && @cursor.selected == false
         print cell.symbol.colorize(:color => player_color, :background => background_color)
       end
       print "\n"
